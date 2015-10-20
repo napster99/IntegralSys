@@ -48,6 +48,15 @@
 			margin: 10px;
 		}
 
+		td{
+			border : 1px solid;
+		}
+
+		.ranktable{
+			border-top: 1px solid;
+			margin-top: 40px;
+		}
+
 	</style>
 </head>
 <body>
@@ -174,30 +183,11 @@
 	</div>
 	<div name="content" id="mingci" hidden>
 		<div class="bs-example" data-example-id="hoverable-table">
-	    <table class="table table-hover">
-	      <thead>
-	        <tr>
-	          <th>#</th>
-	          <th>姓名</th>
-	          <th>城市</th>
-	          <th>第1场名次</th>
-	          <th>第2场名次</th>
-	          <th>第3场名次</th>
-	          <th>第4场名次</th>
-	          <th>总名次</th>
-	        </tr>
+	    <table class="table table-hover ranktable">
+	      <thead id="rankTitle" align="center" valign="middle" style="font-weight:bold;">
 	      </thead>
-	      <tbody id="rankList">
-	        <tr>
-	          <th scope="row">1</th>
-	          <td>Mark</td>
-	          <td>Otto</td>
-	          <td>@mdo</td>
-	          <td>Mark</td>
-	          <td>Otto</td>
-	          <td>@mdo</td>
-	          <td>Mark</td>
-	        </tr>
+	      <tbody id="rankList" align="center" valign="middle">
+	        
 	      </tbody>
 	    </table>
 	  </div>
@@ -229,6 +219,7 @@
 		});
 
 
+
 		//添加用户
 		$('#addUser').on('click',	function() {
 			var name = $('#userName').val();
@@ -240,6 +231,8 @@
 					context.executeSql('CREATE TABLE IF NOT EXISTS User (id unique, name, city)');
 					context.executeSql('INSERT INTO User (id, name, city) VALUES (?,?,?)', [id, name, city],	function() {
 						$('#addUserTip').show();
+						$('#userName').val('').focus();
+						$('#userCity').val('');
 						renderData();
 						setTimeout(function() {
 							$('#addUserTip').hide();
@@ -294,7 +287,6 @@
 		//开始抽签
 		$('#drawBtn').on('click',	function() {
 
-
 			db.transaction(function (tx) {
 				tx.executeSql('DELETE FROM Groups');
 			});
@@ -312,7 +304,7 @@
 
 			if(localStorage.groups && localStorage.counts) {
 
-				initGroupAndCounts
+				initGroupAndCounts();
 
 				getUserList(function(data) {
 					count = data.length;
@@ -428,7 +420,6 @@
 						}
 					}
 				});
-				
 			}, 'Groups');
 		}
 
@@ -544,7 +535,6 @@
     	});
     }
 
-
     function inserChengjiToFishpos(callback, fish_num, weight, uid, counts) {
     	db.transaction(function (context) {
         context.executeSql('UPDATE Fishpos SET fish_num = ?, weight = ? WHERE userid = ? and counts = ?', [fish_num, weight, uid, counts], function (context, results) {
@@ -621,8 +611,171 @@
 
 
 
+		generationLastRanking();
+
+		//得总排名
 		function generationLastRanking(){
+			var htmlStr = '';
+
+			htmlStr += '<tr>'
+      +'	<td rowspan="2" valign="middle">总排名</td>'
+      +'	<td rowspan="2" valign="middle">编号</td>'
+      +'	<td rowspan="2" valign="middle">地区</td>'
+      +'	<td rowspan="2">姓名</td>'
+
+
+			for(var i=0; i<localStorage.counts; i++) {
+				htmlStr += '<td colspan="2">第'+(i+1)+'场</td>'
+			}
+
+			htmlStr += '<td rowspan="2">总得分</td></tr><tr>'
+
+			for(var i=0; i<localStorage.counts; i++) {
+				htmlStr += '<td>得分</td><td>成绩</td>'
+			}
+      
+      htmlStr += '</tr>';
+
+			$('#rankTitle').html(htmlStr);
+
+
+			// rankList
+			getDataFromDB(function(data) {
+				analyticalData(data);
+			}, 'Fishpos');
+
+
+
+		}
+
+		//各种解析rank
+		function analyticalData(data) {
+			var arrs = [], groupsObj = {}, countsObj = {};
+			var userObj = {};
+			for(var i=0; i<localStorage.groups; i++) {
+				groupsObj['group_'+(i+1)] = [];
+			}
+
+			for(var i=0; i<localStorage.counts; i++) {
+				countsObj['counts_'+(i+1)] = {};
+				for(var j=0; j<localStorage.groups; j++) {
+					countsObj['counts_'+(i+1)]['group_'+(j+1)] = [];
+				}
+			}
 			
+			for(var i=0; i<data.length; i++) {
+				var group = data[i]['groupname'].replace('第','').replace('组','');
+				var counts = data[i]['counts'];
+				if(!userObj[data[i]['userid']]) {
+					userObj[data[i]['userid']] = data[i];
+				}
+
+				if(countsObj['counts_'+counts]['group_'+group] instanceof Array) {
+					countsObj['counts_'+counts]['group_'+group].push(data[i]);
+				}
+
+			}
+
+
+
+
+			$.each(countsObj,	function(key, val) {
+				$.each(val,	function(k, v) {
+					if(v[0]['fish_num']) {
+						v.sort(compare('fish_num'));
+					}else if(v[0]['weight']){
+						v.sort(compare('weight'));
+					}
+				});
+			});
+
+
+			//写入ranking
+			$.each(countsObj,	function(key, val) {
+				$.each(val,	function(k, v) {
+					for(var i=0; i<v.length; i++) {
+						v[i]['ranking'] = (i+1);
+					}
+				});
+			});
+
+			$.each(countsObj,	function(key, val) {
+				$.each(val,	function(k, groupItem) {
+					for(var i=0; i<groupItem.length; i++) {
+						userObj[groupItem[i]['userid']][key] = groupItem[i]['ranking']
+					}
+				});
+			}); 
+			
+
+
+			renderBodyRank(userObj);
+		}
+
+
+		function compare(propertyName) { 
+			return function (object1, object2) { 
+				var value1 = object1[propertyName]; 
+				var value2 = object2[propertyName]; 
+				if (value2 < value1) { 
+					return -1; 
+				} 
+				else if (value2 > value1) { 
+					return 1; 
+				}
+				else { 
+					return 0; 
+				} 
+			} 
+		} 
+
+
+		function compare2(propertyName) { 
+			return function (object1, object2) { 
+				var value1 = object1[propertyName]; 
+				var value2 = object2[propertyName]; 
+				if (value2 > value1) { 
+					return -1; 
+				} 
+				else if (value2 < value1) { 
+					return 1; 
+				}
+				else { 
+					return 0; 
+				} 
+			} 
+		} 
+
+
+		//渲染排名表格体
+		function renderBodyRank(data) {
+			var htmlStr = '',count = 1, userArr = [];
+			$.each(data,	function(key, val) {
+				var totalRank = 0;
+				for(var j=0; j<localStorage.counts; j++) {
+					totalRank += val['counts_'+(j+1)];
+				}
+
+				val['totalRank'] = totalRank;
+				userArr.push(val);
+			});
+
+			userArr.sort(compare2('totalRank'));
+
+			for(var i=0; i<userArr.length; i++) {
+				htmlStr += '<tr><td>'+(i+1)+'</td>'
+								+'<td>'+userArr[i]['userid']+'</td>'
+								+'<td>'+userArr[i]['usercity']+'</td>'
+								+'<td>'+userArr[i]['username']+'</td>'
+				for(var j=0; j<localStorage.counts; j++) {
+					htmlStr += '<td>'+(userArr[i]['fish_num'] || userArr[i]['weight'])+'</td><td>'+userArr[i]['counts_'+(j+1)]+'</td>'
+				}
+
+				htmlStr += '<td>'+userArr[i]['totalRank']+'</td></tr>'
+			}
+
+
+			$('#rankList').html(htmlStr);
 		}
 		
 	});
