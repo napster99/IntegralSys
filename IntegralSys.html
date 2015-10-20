@@ -1,0 +1,630 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<title>钓鱼赛事积分系统</title>
+	<link rel="stylesheet" href="css/bootstrap.css">
+	<style>
+
+		h1{
+			margin-left: 15px;
+		}
+
+		table.hovertable {
+			font-family: verdana,arial,sans-serif;
+			font-size:11px;
+			color:#333333;
+			border-width: 1px;
+			border-color: #999999;
+			border-collapse: collapse;
+			width: 500px;
+			margin-top: 30px;
+		}
+
+		table.hovertable th {
+			background-color:#c3dde0;
+			border-width: 1px;
+			padding: 8px;
+			border-style: solid;
+			border-color: #a9c6c9;
+		}
+
+		table.hovertable tr {
+			background-color:#d4e3e5;
+		}
+
+		table.hovertable td {
+			border-width: 1px;
+			padding: 8px;
+			border-style: solid;
+			border-color: #a9c6c9;
+		}
+
+		.ml15 {
+			margin-left: 15px !important;
+		}
+
+		.drawtable{
+			margin: 10px;
+		}
+
+	</style>
+</head>
+<body>
+	<h1>钓鱼赛事 积分系统</h1>
+	<hr />
+
+	<ul class="nav nav-tabs first-tabs">
+	  <li name="luru" class="active"><a href="javascript:;">选手录入</a></li>
+	  <li name="peizhi"><a href="javascript:;">配置</a></li>
+	  <li name="chouqian"><a href="javascript:;">抽签</a></li>
+	  <li name="chengji"><a href="javascript:;">成绩录入</a></li>
+	  <li name="mingci"><a href="javascript:;">名次得分</a></li>
+	</ul>
+
+	<div name="content" id="luru">
+		<div class="form-inline" style="padding:60px;">
+		  <div class="form-group">
+		    <label for="exampleInputName2">姓名</label>
+		    <input type="text" class="form-control" id="userName" placeholder="选手姓名">
+		  </div>
+		  <div class="form-group ml15">
+		    <label for="exampleInputEmail2">城市</label>
+		    <input type="email" class="form-control" id="userCity" placeholder="来自的城市">
+		  </div>
+		  <button id="addUser" class="btn btn-primary ml15">添加</button>
+	  	<table class="hovertable">
+				<tr>
+					<th>编号</th><th>姓名</th><th>城市</th>
+				</tr>
+				<tbody id="userList">
+
+				</tbody>
+			</table>
+		</div>
+
+
+		<div id="addUserTip" class="alert alert-success hidden" role="alert">
+		  <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="false"></span>
+		  <span class="sr-only">Error:</span>
+		  添加成功
+		</div>
+
+
+	</div>
+	<div name="content" id="peizhi" hidden>
+		<div class="form-inline" style="padding:60px;">
+		  <div class="form-group">
+		    <label for="exampleInputName2">分</label>
+		    <input type="number" class="form-control" id="groups" min="1" placeholder="几">
+		    <label for="exampleInputName2">组</label>
+		  </div>
+		  <div class="form-group ml15">
+		    <label for="exampleInputEmail2">比</label>
+		    <input type="number" class="form-control" id="counts" min="1" placeholder="几">
+		    <label for="exampleInputName2">场</label>
+		  </div>
+		  <button id="configBtn" class="btn btn-primary ml15">提交</button>
+		</div>
+	</div>
+
+	<div name="content" id="chouqian" hidden>
+		<div class="form-inline" style="padding:60px 0 0;">
+		  <button id="drawBtn" class="btn btn-primary ml15">开始抽签</button>
+		</div>
+
+
+		<div id="genterLayer" class="alert alert-success hidden" role="alert" style="margin:15px;">
+		  <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="false"></span>
+		  <span id="generTip"></span>
+		</div>
+
+
+		<ul name="groupTitle" id="chouqianTitle" class="nav nav-tabs hidden" style="padding:10px 0 0 15px;">
+		</ul>
+
+
+
+		<table class="hovertable drawtable hidden" >
+			<tr>
+				<th>用户编号</th><th>分组</th><th>场数</th><th>钓位</th><th>姓名</th><th>城市</th>
+			</tr>
+			<tbody id="drawList">
+				
+			</tbody>
+		</table>
+
+	</div>
+
+	<div name="content" id="chengji" hidden>
+		<ul name="groupTitle" id="chengjiTitle" class="nav nav-tabs" style="padding:10px 0 0 15px;">
+		</ul>
+
+		<div class="tabbable" >
+      
+
+      <div id="countsContent" class="tab-content">
+        <table class="hovertable drawtable hidden" >
+					<tr>
+						<th>钓位</th><th>姓名</th><th>成绩</th>
+					</tr>
+					<tbody id="chegnjiList">
+						
+					</tbody>
+				</table>
+				<button id="saveBtn" class="btn btn-primary ml15">保存</button>
+      </div>
+
+      <div class="dropup" style="padding:15px;">
+			  <button class="btn btn-default dropdown-toggle" type="button" id="countsSel" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+			    选择场数
+			    <span class="caret"></span>
+			  </button>
+			  <ul id="chengjiCounts" class="dropdown-menu" aria-labelledby="dropdownMenu2">
+			  </ul>
+			</div>
+
+
+
+    </div>
+
+		<div>
+
+		</div>
+	</div>
+	<div name="content" id="mingci" hidden>
+		<div class="bs-example" data-example-id="hoverable-table">
+	    <table class="table table-hover">
+	      <thead>
+	        <tr>
+	          <th>#</th>
+	          <th>姓名</th>
+	          <th>城市</th>
+	          <th>第1场名次</th>
+	          <th>第2场名次</th>
+	          <th>第3场名次</th>
+	          <th>第4场名次</th>
+	          <th>总名次</th>
+	        </tr>
+	      </thead>
+	      <tbody id="rankList">
+	        <tr>
+	          <th scope="row">1</th>
+	          <td>Mark</td>
+	          <td>Otto</td>
+	          <td>@mdo</td>
+	          <td>Mark</td>
+	          <td>Otto</td>
+	          <td>@mdo</td>
+	          <td>Mark</td>
+	        </tr>
+	      </tbody>
+	    </table>
+	  </div>
+	</div>
+
+</body>
+<script src="jquery.js"></script>
+<script src="js/bootstrap.min.js"></script>
+<script>
+	$(function() {
+		var db = openDatabase('IntegralDB', '1.0', 'Integral DB', 100 * 1024 * 1024);
+
+		//删除表
+		// db.transaction(function (tx) {
+		// 	tx.executeSql('drop table Fishpos',[],function() {
+		// 		alert('s')
+		// 	},function() {
+		// 		alert('e')
+		// 	});
+		// });
+
+		
+		$('.first-tabs').on('click', 'li',	function() {
+			var name = $(this).attr('name');
+			$('.first-tabs').find('li.active').removeClass('active');
+			$('div[name=content]').attr('hidden', true);
+			$('#'+name).removeAttr('hidden');
+			$(this).addClass('active');
+		});
+
+
+		//添加用户
+		$('#addUser').on('click',	function() {
+			var name = $('#userName').val();
+			var city = $('#userCity').val();
+			var id = String(+new Date()).substring(5);
+
+			if(db) {
+				db.transaction(function (context) {
+					context.executeSql('CREATE TABLE IF NOT EXISTS User (id unique, name, city)');
+					context.executeSql('INSERT INTO User (id, name, city) VALUES (?,?,?)', [id, name, city],	function() {
+						$('#addUserTip').show();
+						renderData();
+						setTimeout(function() {
+							$('#addUserTip').hide();
+						}, 1000)
+					}, function(tx, error) {
+						alert('添加数据失败: ' + error.message);
+					});
+	      });
+			}
+		});
+
+
+		$('#configBtn').on('click',	function() {
+			var groups = $('#groups').val();
+			var counts = $('#counts').val();
+
+			if(groups && counts) {
+				alert('配置成功！');
+			}
+
+			localStorage.groups = groups;
+			localStorage.counts = counts;
+
+		});
+
+		//初始化 组 和 场
+		function initGroupAndCounts() {
+			if(localStorage.groups) {
+				var htmlStr = '';
+				for(var i=0; i<localStorage.groups; i++) {
+					if(i == 0) {
+						htmlStr += '<li groupname="第'+(i+1)+'组" class="active"><a href="javascript:;">第'+(i + 1)+'组</a></li>'
+					}else{
+						htmlStr += '<li groupname="第'+(i+1)+'组" ><a href="javascript:;">第'+(i + 1)+'组</a></li>'
+					}
+				}
+				$('ul[name=groupTitle]').html(htmlStr);
+			}
+
+			if(localStorage.counts) {
+				var htmlStr = '';
+				for(var i=0; i<localStorage.counts; i++) {
+					htmlStr += '<li><a href="javascript:;">第'+(i+1)+'场</a></li>'
+				}
+				$('#chengjiCounts').html(htmlStr);
+			}
+		}
+
+		initGroupAndCounts();
+
+		var count = 0;
+		//开始抽签
+		$('#drawBtn').on('click',	function() {
+
+
+			db.transaction(function (tx) {
+				tx.executeSql('DELETE FROM Groups');
+			});
+
+			db.transaction(function (tx) {
+				tx.executeSql('DELETE FROM Fishpos');
+			});
+
+			$('#genterLayer').removeClass('hidden');
+
+			$('#generTip').text('正在分组...');
+			$('.drawtable').addClass('hidden');
+			$('ul[name=groupTitle]').addClass('hidden');
+
+
+			if(localStorage.groups && localStorage.counts) {
+
+				initGroupAndCounts
+
+				getUserList(function(data) {
+					count = data.length;
+					for(var i=0; i<data.length; i++){
+						var which = i%localStorage.groups;
+						inserGroupData(data[i], '第' + ( which + 1 ) + '组');
+					}
+				});
+			}else{
+				alert('请先配置场数和分组');
+			}
+		});
+
+		//抽签分组
+		$('#chouqianTitle').on('click', 'li', function() {
+			var index = $(this).index();
+			$('#chouqianTitle').find('li.active').removeClass('active');
+			$(this).addClass('active');
+
+			renderDrawTable(index + 1);
+		});
+
+
+		//选择场数
+		$('#chengjiCounts').on('click', 'li',	function() {
+			var index = $(this).index();
+			$('#countsSel').text('第'+(index+1)+'场');
+			$('#chengjiCounts').data('cur', index);
+
+			renderSubmitData(index + 1);
+		});
+
+
+		function renderSubmitData(index){
+
+			var groupname = $('#chengjiTitle').find('li.active').attr('groupname');
+			getDataFromDBWhere2(function(data) {
+				var htmlStr =  '';
+				var htmlStr = '';
+				for(var i=0; i<data.length; i++) {
+					var oldValue = data[i]['fish_num'] || data[i]['weight'];
+					if(oldValue) {
+						htmlStr += '<tr>'
+						+'	<td>'+data[i]['grouppos']+'</td><td>'+data[i]['username']+'</td><td><input uid="'+data[i]['userid']+'" type="text" value="'+oldValue+'" /></td>'
+						+'</tr>'
+					}else{
+						htmlStr += '<tr>'
+						+'	<td>'+data[i]['grouppos']+'</td><td>'+data[i]['username']+'</td><td><input uid="'+data[i]['userid']+'" type="text" /></td>'
+						+'</tr>'
+					}
+				}
+				$('#chegnjiList').html(htmlStr);
+			}, 'Fishpos' , groupname, index);
+
+		}
+
+
+		$('#chengjiTitle').on('click', 'li', function() {
+			$('#chengjiTitle').find('li.active').removeClass('active');
+			$(this).addClass('active');
+			var index = Number($('#chengjiCounts').data('cur'));
+
+			renderSubmitData(index+1);
+		});
+
+
+		//根据组数 创建group表
+		function inserGroupData(user, groupname) {
+			db.transaction(function (context) {
+				var id = String(+new Date()).substring(5);
+				var name = user['name'];
+				var city = user['city'];
+				var userid = user['id'];
+
+				context.executeSql('CREATE TABLE IF NOT EXISTS Groups (id unique, groupname, userid, username, usercity)');
+				context.executeSql('INSERT INTO Groups (id, groupname, userid, username, usercity) VALUES (?,?,?,?,?)', [id, groupname, userid, name, city],	function() {
+					count--;
+					if(count === 0) {//添加完毕
+						$('#generTip').text('分组成功！');
+						setTimeout(function() {
+							exesGroupPos();
+						}, 500);
+					}
+				}, function(tx, error) {
+					alert('添加Groups数据失败: ' + error.message);
+				});
+      });
+		}
+
+		var groupPosCount = 0;
+		//
+		function exesGroupPos() {
+			$('#generTip').text('正在分配钓位...');
+			var obj = {};
+			getDataFromDB(function(data) {
+				groupPosCount = data.length;
+				$.each(data,	function(key, val) {
+					if(!obj[val['groupname']]) {
+						obj[val['groupname']] = [];
+					}
+					obj[val['groupname']].push(val);
+				});
+
+				$.each(obj,	function(key, val) {
+					for(var j=0; j<localStorage.counts; j++) {
+						var rArr = randoms(val.length);
+						for(var i=0; i<val.length; i++) {
+							generateGroupTable({
+								'name' : val[rArr[i]]['username'],
+								'city' : val[rArr[i]]['usercity'],
+								'id' : val[rArr[i]]['userid']
+							}, key, i, j + 1);
+						}
+					}
+				});
+				
+			}, 'Groups');
+		}
+
+		//随机打乱
+		function randoms(len) {
+			var arr = []; 
+			for(var i = 0;i < len;i++){ 
+				arr[i] = i; 
+			} 
+			arr.sort(function(){ return 0.5 - Math.random() }) 
+			var str = arr.join(); 
+			return arr;
+		}
+
+		//根据组数 生成每组钓位表
+		function generateGroupTable(user, groupname, grouppos, counts) {
+			db.transaction(function (context) {
+				var id = String(+new Date()).substring(5);
+				var name = user['name'];
+				var city = user['city'];
+				var userid = user['id'];
+
+				context.executeSql('CREATE TABLE IF NOT EXISTS Fishpos (id unique, groupname, grouppos ,userid, username, usercity, counts, fish_num, weight, ranking)');
+				context.executeSql('INSERT INTO Fishpos (id, groupname, grouppos ,userid, username, usercity, counts, fish_num, weight, ranking) VALUES (?,?,?,?,?,?,?,?,?,?)', [id, groupname, grouppos, userid, name, city, counts, '', '', 0],	function() {
+					groupPosCount--;
+					if(groupPosCount === 0) {
+						$('#generTip').text('钓位分配成功！');
+						setTimeout(function() {
+							$('#generTip').text('正在生成表格...');
+							renderDrawTable(1);
+						}, 1000);
+					}
+				}, function(tx, error) {
+					alert('添加Fishpos数据失败: ' + error.message);
+				});
+      });
+		}
+
+
+		function renderData() {
+			getUserList(function(data) {
+				var htmlStr = '';
+				for(var i=0; i<data.length; i++) {
+					htmlStr += '<tr>'
+					+'	<td>'+data[i]['id']+'</td><td>'+data[i]['name']+'</td><td>'+data[i]['city']+'</td>'
+					+'</tr>'
+				}
+				$('#userList').html(htmlStr);
+			});
+		}
+
+		renderData();
+
+
+		function renderDrawTable(index) {
+			getDataFromDBWhere(function(data) {
+				var htmlStr =  '';
+				for(var i=0; i<data.length; i++) {
+					htmlStr += '<tr>'
+					+'	<td>'+data[i]['userid']+'</td><td>'+data[i]['groupname']+'</td><td>'+data[i]['counts']+'</td><td>'+data[i]['grouppos']+'</td><td>'+data[i]['username']+'</td><td>'+data[i]['usercity']+'</td>'
+					+'</tr>'
+				}
+				$('#drawList').html(htmlStr);
+				$('.drawtable').removeClass('hidden');
+				$('ul[name=groupTitle]').removeClass('hidden');
+				$('#genterLayer').addClass('hidden');
+			}, 'Fishpos' , '第' + index + '组');
+
+		}
+
+
+    function getUserList(callback) {
+    	db.transaction(function (context) {
+        context.executeSql('SELECT * FROM User', [], function (context, results) {
+          var len = results.rows.length, i;
+          var arrs = [];
+          for (i = 0; i < len; i++){
+          	var obj = {};
+            obj = {
+            	'id' : results.rows.item(i).id,
+            	'name' : results.rows.item(i).name,
+            	'city' : results.rows.item(i).city
+            }
+            arrs.push(obj);
+          }
+          callback(arrs);
+       	});
+    	});
+    }
+
+
+    function getDataFromDB(callback, tName) {
+    	db.transaction(function (context) {
+        context.executeSql('SELECT * FROM ' + tName, [], function (context, results) {
+          callback(results.rows);
+       	});
+    	});
+    }
+
+    function getDataFromDBWhere(callback, tName, groupname) {
+    	db.transaction(function (context) {
+        context.executeSql('SELECT * FROM ' + tName + ' WHERE groupname = ?', [groupname], function (context, results) {
+          callback(results.rows);
+       	});
+    	});
+    }
+
+    function getDataFromDBWhere2(callback, tName, groupname, counts) {
+    	db.transaction(function (context) {
+        context.executeSql('SELECT * FROM ' + tName + ' WHERE groupname = ? and counts = ?', [groupname, counts], function (context, results) {
+          callback(results.rows);
+       	});
+    	});
+    }
+
+
+    function inserChengjiToFishpos(callback, fish_num, weight, uid, counts) {
+    	db.transaction(function (context) {
+        context.executeSql('UPDATE Fishpos SET fish_num = ?, weight = ? WHERE userid = ? and counts = ?', [fish_num, weight, uid, counts], function (context, results) {
+          callback();
+       	});
+    	});
+    }
+
+    function getChengjiAllNum(callback) {
+    	db.transaction(function (context) {
+        context.executeSql('SELECT * FROM Fishpos WHERE weight = "" and fish_num =""', [], function (context, results) {
+          callback(results);
+       	});
+    	});
+    }
+
+
+    //输入成绩格式拦截
+    $('#chegnjiList').on('blur', 'input',	function() {
+    	var value = $(this).val();
+    	if(isNaN(value)){
+			  alert('请输入数字！')
+			  $(this).val('').focus();
+			}
+    });
+
+     //录入成绩
+     $('#saveBtn').on('click',	function() {
+     		var inputs = $('#chegnjiList').find('input');
+     		var newValueArr = [], isFishNum = true;
+     		for(var i=0; i<inputs.length; i++) {
+     			var curValue = inputs.eq(i).val();
+     			newValueArr.push({
+     				'uid' : inputs.eq(i).attr('uid'),
+     				'chengji' : curValue
+     			});
+     			if(!curValue) {
+     				alert('请输入成绩！');
+			  		inputs.eq(i).val('').focus();
+			  		return;
+     			}
+     			if(parseInt(curValue) != curValue){
+						isFishNum = false;
+					}
+     		}
+
+     		var counts = Number($('#chengjiCounts').data('cur')) + 1;
+
+     		for(var i=0; i<newValueArr.length; i++) {
+     			var fish_num = 0, weight = 0, curCount = 0;
+     			var uid = newValueArr[i]['uid'];
+     			if(isFishNum) {
+	     			fish_num = newValueArr[i]['chengji'];
+	     		}else{
+	     			weight = newValueArr[i]['chengji'];
+	     		}
+
+     			inserChengjiToFishpos(function(result) {
+     				curCount++;
+     				if(newValueArr.length == curCount) {
+     					
+								getChengjiAllNum(function(data) {
+									if(data.rows.length == 0) {
+										//生成名次表格
+										generationLastRanking();
+									}
+								})
+
+
+     				}
+     			}, fish_num, weight, uid, counts);
+     		}
+     });
+
+
+
+		function generationLastRanking(){
+			
+		}
+		
+	});
+</script>
+</html>
