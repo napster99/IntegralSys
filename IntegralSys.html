@@ -162,7 +162,7 @@
       
 
       <div id="countsContent" class="tab-content">
-        <table class="hovertable drawtable hidden" >
+        <table id="chengjiTable" class="hovertable drawtable hidden" >
 					<tr>
 						<th>钓位</th><th>姓名</th><th>成绩</th>
 					</tr>
@@ -306,6 +306,7 @@
 
 			if(name == 'chengji' && $('#chengjiCounts').find('li')[0]) {
 				$('#chengjiCounts').find('li').first().trigger('click');
+				$('#chengjiTable').removeClass('hidden')
 			}
 
 		});
@@ -388,37 +389,84 @@
 
 		function renderChouqian(index) {
 			index = index || 1;
-			
+			var htmlStr = '';
 			var counts = localStorage.counts;
-			for(var i=0; i<counts; i++) {
-				getDataFromDBWhere(function(data) {
-					var htmlStr =  '';
+			var userObj = {};
+
+			
+
+			getDataFromDBWhere(function(data) {
+					// counts: 1
+					// fish_num: ""
+					// groupname: "第1组"
+					// grouppos: 0
+					// id: null
+					// ranking: 0
+					// usercity: "杭州s"
+					// userid: "49056280"
+					// username: "w"
+					// weight: ""
+					$.each(data,	function(k, v) {
+						if(!userObj[v['userid']]) {
+							userObj[v['userid']] = {};
+							userObj[v['userid']] = v;
+						}
+
+						userObj[v['userid']]['pos_' + v['counts']] = v['grouppos'];
+						
+					});
 
 					htmlStr += '<table class="hovertable drawtable" >'
-						+'<tr>'
-						+'<th>用户编号</th><th>场数</th><th>钓位</th><th>姓名</th><th>地区</th>'
-						+'</tr>'
-						+'<tbody>'
-						for(var i=0; i<data.length; i++) {
-							htmlStr += '<tr>'
-								+'	<td>'+data[i]['userid']+'</td><td>'+data[i]['counts']+'</td><td>'+data[i]['grouppos']+'</td><td>'+data[i]['username']+'</td><td>'+data[i]['usercity']+'</td>'
-								+'</tr>'
+					+'<tr>'
+					+'<th>用户编号</th><th>姓名</th><th>地区</th>'
+					for(var i=0; i<counts; i++) {
+						htmlStr += '<th>第'+(i+1)+'场钓位</th>'
+					}
+					+'</tr>'
+					+'<tbody>'
+
+					$.each(userObj,	function(k, v) {
+						htmlStr += '<tr>'
+						+'	<td>'+v['userid']+'</td><td>'+v['username']+'</td><td>'+v['usercity']+'</td>'
+						for(var j=0; j<localStorage.counts; j++) {
+							htmlStr += '<td>'+(v['pos_'+(j+1)]+1)+'</td>'
 						}
-						htmlStr += '</tbody>'
-						+'</table>'
+						htmlStr += '</tr>'
+					});
 
-					$('#chouqianTables').append(htmlStr);
+					htmlStr += '</tbody></table>'
+					$('#chouqianTables').html(htmlStr).removeClass('hidden');
 
-					$('#chouqianTables').removeClass('hidden')
-					
 					$('ul[name=groupTitle]').removeClass('hidden');
 					$('#genterLayer').addClass('hidden');
 
+			}, 'Fishpos' , '第' + index + '组');
 
-				}, 'Fishpos' , '第' + index + '组', (i+1));
-			}
-
+			
 		}
+
+		//渲染抽签表格
+		// function renderChouqianDoms(data) {
+		// 	var htmlStr =  '';
+
+		// 	htmlStr += '<table class="hovertable drawtable" >'
+		// 		+'<tr>'
+		// 		+'<th>用户编号</th><th>场数</th><th>钓位</th><th>姓名</th><th>地区</th>'
+		// 		+'</tr>'
+		// 		+'<tbody>'
+		// 		for(var i=0; i<data.length; i++) {
+		// 			htmlStr += '<tr>'
+		// 				+'	<td>'+data[i]['userid']+'</td><td>'+data[i]['counts']+'</td><td>'+(data[i]['grouppos'] + 1)+'</td><td>'+data[i]['username']+'</td><td>'+data[i]['usercity']+'</td>'
+		// 				+'</tr>'
+		// 		}
+		// 		htmlStr += '</tbody>'
+		// 		+'</table>'
+
+
+		// 	$('#chouqianTables').append(htmlStr);
+
+		// 	$('#chouqianTables').removeClass('hidden')
+		// }
 
 		//默认为1
 		renderChouqian(1);
@@ -490,11 +538,11 @@
 					var oldValue = data[i]['fish_num'] || data[i]['weight'];
 					if(oldValue) {
 						htmlStr += '<tr>'
-						+'	<td>'+data[i]['grouppos']+'</td><td>'+data[i]['username']+'</td><td><input uid="'+data[i]['userid']+'" type="text" value="'+oldValue+'" /></td>'
+						+'	<td>'+(data[i]['grouppos'] + 1)+'</td><td>'+data[i]['username']+'</td><td><input uid="'+data[i]['userid']+'" type="text" value="'+oldValue+'" /></td>'
 						+'</tr>'
 					}else{
 						htmlStr += '<tr>'
-						+'	<td>'+data[i]['grouppos']+'</td><td>'+data[i]['username']+'</td><td><input uid="'+data[i]['userid']+'" type="text" /></td>'
+						+'	<td>'+(data[i]['grouppos'] + 1)+'</td><td>'+data[i]['username']+'</td><td><input uid="'+data[i]['userid']+'" type="text" /></td>'
 						+'</tr>'
 					}
 				}
@@ -646,9 +694,9 @@
     	});
     }
 
-    function getDataFromDBWhere(callback, tName, groupname, counts) {
+    function getDataFromDBWhere(callback, tName, groupname) {
     	db.transaction(function (context) {
-        context.executeSql('SELECT * FROM ' + tName + ' WHERE groupname = ? and counts = ?', [groupname, counts], function (context, results) {
+        context.executeSql('SELECT * FROM ' + tName + ' WHERE groupname = ?', [groupname], function (context, results) {
           callback(results.rows);
        	});
     	});
@@ -821,14 +869,20 @@
 			//写入ranking(分组排名)
 			$.each(countsObj,	function(key, val) {
 				$.each(val,	function(k, v) {
+					console.log(v)
 				 	var r = 0;
 				 	var last = -1;
 				 	var uList = [];
 					for(var i=0; i<v.length; i++) {
+						if (v[i]['ranking'] <= 0) {
+							v[i]['ranking'] = 1000;
+						}
 						if(v[i]['fish_num']) {
 							var _last = v[i]['fish_num'];
-						} else {
+						} else if(v[i]['weight']) {
 							var _last = v[i]['weight'];
+						} else {
+							continue;
 						}
 						if (last == _last || i == 0) {
 							r += (i + 1);
@@ -836,7 +890,8 @@
 						} else {
 							//开始结算前面的
 							for (var ii = 0; ii < uList.length; ii ++) {
-								v[uList[ii]]['ranking'] = Math.floor(r * 10 / uList.length) / 10;
+								console.log(v)
+								v[uList[ii]]['ranking'] = r > 0 ? Math.floor(r * 10 / uList.length) / 10 : '-';
 							}
 							uList = [i];
 							r = i + 1;
@@ -846,9 +901,11 @@
 					if (r > 0) {
 						//开始结算前面的
 						for (var ii = 0; ii < uList.length; ii ++) {
-							v[uList[ii]]['ranking'] = Math.floor(r * 10 / uList.length) / 10;
+							console.log(v)
+							v[uList[ii]]['ranking'] = r > 0 ? Math.floor(r * 10 / uList.length) / 10 : '-';
 						}
 					}
+
 				});
 			});
 
@@ -950,7 +1007,11 @@
 			var htmlStr = '',count = 1, userArr = [];
 			$.each(data,	function(key, val) {
 				var totalRank = 0;
+				console.log(val)
 				for(var j=0; j<localStorage.counts; j++) {
+					if (val['counts_'+(j+1)] == 1000) {
+						continue;
+					}
 					totalRank += val['counts_'+(j+1)];
 				}
 
@@ -964,7 +1025,7 @@
 					+'<td>'+userArr[i]['usercity']+'</td>'
 					+'<td>'+userArr[i]['username']+'</td>'
 				for(var j=0; j<localStorage.counts; j++) {
-					htmlStr += '<td>'+userArr[i]['counts_'+(j+1)+'_value']+'</td><td>'+userArr[i]['counts_'+(j+1)]+'</td>'
+					htmlStr += '<td>'+userArr[i]['counts_'+(j+1)+'_value']+'</td><td>'+(userArr[i]['counts_'+(j+1)] == 1000 ? '-': userArr[i]['counts_'+(j+1)])+'</td>'
 				}
 
 				htmlStr += '<td>'+userArr[i]['totalRank']+'</td><td>'+(i+1)+'</td><tr></tr>'
