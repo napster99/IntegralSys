@@ -702,13 +702,12 @@
 			$.each(countsObj,	function(key, val) {
 				$.each(val,	function(k, groupItem) {
 					for(var i=0; i<groupItem.length; i++) {
-						userObj[groupItem[i]['userid']][key] = groupItem[i]['ranking']
+						userObj[groupItem[i]['userid']][key] = groupItem[i]['ranking'];
+						userObj[groupItem[i]['userid']][key+'_value'] = groupItem[i]['fish_num'] || groupItem[i]['weight'];
 					}
 				});
 			}); 
 			
-
-
 			renderBodyRank(userObj);
 		}
 
@@ -761,14 +760,16 @@
 			});
 
 			userArr.sort(compare2('totalRank'));
+			
+			// console.log(userArr)
 
 			for(var i=0; i<userArr.length; i++) {
 				htmlStr += '<tr><td>'+(i+1)+'</td>'
-								+'<td>'+userArr[i]['userid']+'</td>'
-								+'<td>'+userArr[i]['usercity']+'</td>'
-								+'<td>'+userArr[i]['username']+'</td>'
+						+'<td>'+userArr[i]['userid']+'</td>'
+						+'<td>'+userArr[i]['usercity']+'</td>'
+						+'<td>'+userArr[i]['username']+'</td>'
 				for(var j=0; j<localStorage.counts; j++) {
-					htmlStr += '<td>'+(userArr[i]['fish_num'] || userArr[i]['weight'])+'</td><td>'+userArr[i]['counts_'+(j+1)]+'</td>'
+					htmlStr += '<td>'+userArr[i]['counts_'+(j+1)+'_value']+'</td><td>'+userArr[i]['counts_'+(j+1)]+'</td>'
 				}
 
 				htmlStr += '<td>'+userArr[i]['totalRank']+'</td></tr>'
