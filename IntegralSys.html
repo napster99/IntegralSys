@@ -44,6 +44,10 @@
 			margin-left: 15px !important;
 		}
 
+		.pt30{
+			padding-top: 30px !important;
+		}
+
 		.drawtable{
 			margin: 10px;
 		}
@@ -55,6 +59,9 @@
 		.ranktable{
 			border-top: 1px solid;
 			margin-top: 40px;
+		}
+		.userOptionEdit {
+			float: right;
 		}
 
 	</style>
@@ -68,7 +75,7 @@
 	  <li name="peizhi"><a href="javascript:;">配置</a></li>
 	  <li name="chouqian"><a href="javascript:;">抽签</a></li>
 	  <li name="chengji"><a href="javascript:;">成绩录入</a></li>
-	  <li name="mingci"><a href="javascript:;">名次得分</a></li>
+	  <li name="mingci"><a href="javascript:;">得分排名</a></li>
 	</ul>
 
 	<div name="content" id="luru">
@@ -84,7 +91,7 @@
 		  <button id="addUser" class="btn btn-primary ml15">添加</button>
 	  	<table class="hovertable">
 				<tr>
-					<th>编号</th><th>姓名</th><th>城市</th>
+					<th>编号</th><th>姓名</th><th>城市</th><th>操作</th>
 				</tr>
 				<tbody id="userList">
 
@@ -133,15 +140,17 @@
 		</ul>
 
 
-
-		<table class="hovertable drawtable hidden" >
-			<tr>
-				<th>用户编号</th><th>分组</th><th>场数</th><th>钓位</th><th>姓名</th><th>城市</th>
-			</tr>
-			<tbody id="drawList">
-				
-			</tbody>
-		</table>
+		<div id="chouqianTables" class="hidden">
+			<!-- <table class="hovertable drawtable " >
+				<tr>
+					<th>用户编号</th><th>分组</th><th>场数</th><th>钓位</th><th>姓名</th><th>地区</th>
+				</tr>
+				<tbody id="drawList">
+					
+				</tbody>
+			</table> -->
+		</div>
+		
 
 	</div>
 
@@ -197,11 +206,27 @@
 <script src="jquery.js"></script>
 <script src="js/bootstrap.min.js"></script>
 <script>
-	$(function() {
-		var db = openDatabase('IntegralDB', '1.0', 'Integral DB', 100 * 1024 * 1024);
 
+
+	function pad(num, n) {
+	    var len = num.toString().length;
+	    while(len < n) {
+	        num = '0' + num;
+	        len++;
+	    }
+	    return num;
+	}
+
+	$(function() {
+
+
+		var db = openDatabase('IntegralDB', '1.0', 'Integral DB', 100 * 1024 * 1024);
+		if (!localStorage.useridStart) {
+			localStorage.useridStart = 1;
+		}
 		//删除表
 		// db.transaction(function (tx) {
+		// 	tx.executeSql('drop table Groups',[]);
 		// 	tx.executeSql('drop table Fishpos',[],function() {
 		// 		alert('s')
 		// 	},function() {
@@ -209,13 +234,80 @@
 		// 	});
 		// });
 
+
+		window.delUser = function (uid) {
+			var name = $('#userlist_'+uid).find('td span').eq(0).text();
+			var city = $('#userlist_'+uid).find('td span').eq(1).text();
+			var r = confirm('确定删除<'+city+'> ' + name + '吗？删除后抽签及成绩将也会被删除');
+			if (r === true) {
+	    	db.transaction(function (context) {
+	    		context.executeSql('DELETE FROM Groups WHERE userid = ?', [uid]);
+	    		context.executeSql('DELETE FROM Fishpos WHERE userid = ?', [uid]);
+	        context.executeSql('DELETE FROM User WHERE id = ?', [uid], function (context, results) {
+	          if (results.rows) {
+	          	$('#userlist_'+uid).remove();
+	          	generationLastRanking();
+	          	renderChouqian(1);
+	          } else {
+	          	alert('删除失败!');
+	          }
+	       	});
+	    	});
+			}
+
+		}
 		
+		window.editUserName = function (uid) {
+			var name = $('#userlist_'+uid).find('td span').eq(0).text();
+			var name = prompt('请输入名字', name);
+			if (name) {
+	    	db.transaction(function (context) {
+	    		context.executeSql('UPDATE Groups SET username = ? WHERE userid = ?', [name, uid]);
+	    		context.executeSql('UPDATE Fishpos SET username = ? WHERE userid = ?', [name, uid]);
+	        context.executeSql('UPDATE User SET name = ? WHERE id = ?', [name, uid], function (context, results) {
+	          if (results.rows) {
+	          	$('#userlist_'+uid).find('td span').eq(0).text(name);
+	          	generationLastRanking();
+							renderChouqian(1);
+	          } else {
+	          	alert('更新失败!');
+	          }
+	       	});
+	    	});
+			}
+		}
+
+		window.editUserCity = function (uid) {
+			var city = $('#userlist_'+uid).find('td span').eq(1).text();
+			var city = prompt('请输入城市', city);
+			if (city) {
+				db.transaction(function (context) {
+					context.executeSql('UPDATE Groups SET usercity = ? WHERE userid = ?', [city, uid]);
+	    		context.executeSql('UPDATE Fishpos SET usercity = ? WHERE userid = ?', [city, uid]);
+	        context.executeSql('UPDATE User SET city = ? WHERE id = ?', [city, uid], function (context, results) {
+	          if (results.rows) {
+	          	$('#userlist_'+uid).find('td span').eq(1).text(city);
+	          	generationLastRanking();
+	          	renderChouqian(1);
+	          } else {
+	          	alert('更新失败!');
+	          }
+	       	});
+	    	});
+			}
+		}
+
 		$('.first-tabs').on('click', 'li',	function() {
 			var name = $(this).attr('name');
 			$('.first-tabs').find('li.active').removeClass('active');
 			$('div[name=content]').attr('hidden', true);
 			$('#'+name).removeAttr('hidden');
 			$(this).addClass('active');
+
+			if(name == 'chengji' && $('#chengjiCounts').find('li')[0]) {
+				$('#chengjiCounts').find('li').first().trigger('click');
+			}
+
 		});
 
 
@@ -224,7 +316,8 @@
 		$('#addUser').on('click',	function() {
 			var name = $('#userName').val();
 			var city = $('#userCity').val();
-			var id = String(+new Date()).substring(5);
+			var id = pad(localStorage.useridStart, 3);
+			localStorage.useridStart ++;
 
 			if(db) {
 				db.transaction(function (context) {
@@ -244,6 +337,15 @@
 			}
 		});
 
+
+		function initConfig() {
+			if(localStorage.groups || localStorage.counts) {
+				$('#groups').val(localStorage.groups);
+				$('#counts').val(localStorage.counts);
+			}
+		}
+
+		initConfig();
 
 		$('#configBtn').on('click',	function() {
 			var groups = $('#groups').val();
@@ -282,6 +384,44 @@
 		}
 
 		initGroupAndCounts();
+
+
+		function renderChouqian(index) {
+			index = index || 1;
+			
+			var counts = localStorage.counts;
+			for(var i=0; i<counts; i++) {
+				getDataFromDBWhere(function(data) {
+					var htmlStr =  '';
+
+					htmlStr += '<table class="hovertable drawtable" >'
+						+'<tr>'
+						+'<th>用户编号</th><th>场数</th><th>钓位</th><th>姓名</th><th>地区</th>'
+						+'</tr>'
+						+'<tbody>'
+						for(var i=0; i<data.length; i++) {
+							htmlStr += '<tr>'
+								+'	<td>'+data[i]['userid']+'</td><td>'+data[i]['counts']+'</td><td>'+data[i]['grouppos']+'</td><td>'+data[i]['username']+'</td><td>'+data[i]['usercity']+'</td>'
+								+'</tr>'
+						}
+						htmlStr += '</tbody>'
+						+'</table>'
+
+					$('#chouqianTables').append(htmlStr);
+
+					$('#chouqianTables').removeClass('hidden')
+					
+					$('ul[name=groupTitle]').removeClass('hidden');
+					$('#genterLayer').addClass('hidden');
+
+
+				}, 'Fishpos' , '第' + index + '组', (i+1));
+			}
+
+		}
+
+		//默认为1
+		renderChouqian(1);
 
 		var count = 0;
 		//开始抽签
@@ -324,7 +464,9 @@
 			$('#chouqianTitle').find('li.active').removeClass('active');
 			$(this).addClass('active');
 
-			renderDrawTable(index + 1);
+			$('#chouqianTables').html('');
+			renderChouqian(index + 1);
+
 		});
 
 
@@ -379,8 +521,8 @@
 				var city = user['city'];
 				var userid = user['id'];
 
-				context.executeSql('CREATE TABLE IF NOT EXISTS Groups (id unique, groupname, userid, username, usercity)');
-				context.executeSql('INSERT INTO Groups (id, groupname, userid, username, usercity) VALUES (?,?,?,?,?)', [id, groupname, userid, name, city],	function() {
+				context.executeSql('CREATE TABLE IF NOT EXISTS Groups (groupname, userid, username, usercity)');
+				context.executeSql('INSERT INTO Groups (groupname, userid, username, usercity) VALUES (?,?,?,?)', [ groupname, userid, name, city],	function() {
 					count--;
 					if(count === 0) {//添加完毕
 						$('#generTip').text('分组成功！');
@@ -400,6 +542,7 @@
 			$('#generTip').text('正在分配钓位...');
 			var obj = {};
 			getDataFromDB(function(data) {
+
 				groupPosCount = data.length;
 				$.each(data,	function(key, val) {
 					if(!obj[val['groupname']]) {
@@ -442,14 +585,14 @@
 				var city = user['city'];
 				var userid = user['id'];
 
-				context.executeSql('CREATE TABLE IF NOT EXISTS Fishpos (id unique, groupname, grouppos ,userid, username, usercity, counts, fish_num, weight, ranking)');
-				context.executeSql('INSERT INTO Fishpos (id, groupname, grouppos ,userid, username, usercity, counts, fish_num, weight, ranking) VALUES (?,?,?,?,?,?,?,?,?,?)', [id, groupname, grouppos, userid, name, city, counts, '', '', 0],	function() {
+				context.executeSql('CREATE TABLE IF NOT EXISTS Fishpos (groupname, grouppos ,userid, username, usercity, counts, fish_num, weight, ranking)');
+				context.executeSql('INSERT INTO Fishpos ( groupname, grouppos ,userid, username, usercity, counts, fish_num, weight, ranking) VALUES (?,?,?,?,?,?,?,?,?)', [groupname, grouppos, userid, name, city, counts, '', '', 0],	function() {
 					groupPosCount--;
 					if(groupPosCount === 0) {
 						$('#generTip').text('钓位分配成功！');
 						setTimeout(function() {
 							$('#generTip').text('正在生成表格...');
-							renderDrawTable(1);
+							renderChouqian(1);
 						}, 1000);
 					}
 				}, function(tx, error) {
@@ -459,12 +602,13 @@
 		}
 
 
+
 		function renderData() {
 			getUserList(function(data) {
 				var htmlStr = '';
 				for(var i=0; i<data.length; i++) {
-					htmlStr += '<tr>'
-					+'	<td>'+data[i]['id']+'</td><td>'+data[i]['name']+'</td><td>'+data[i]['city']+'</td>'
+					htmlStr += '<tr id="userlist_'+data[i]['id']+'">'
+					+'	<td>'+data[i]['id']+'</td><td><span>'+data[i]['name']+'</span><a href="javascript:;" class="userOptionEdit" onClick="return editUserName(\''+data[i]['id']+'\')">修改</a></td><td><span>'+data[i]['city']+'</span><a href="javascript:;" class="userOptionEdit" onClick="return editUserCity(\''+data[i]['id']+'\')">修改</a></td><td><a href="javascript:;" class="userOptionDel" onClick="return delUser(\''+data[i]['id']+'\')">删除</a></td>'
 					+'</tr>'
 				}
 				$('#userList').html(htmlStr);
@@ -472,23 +616,6 @@
 		}
 
 		renderData();
-
-
-		function renderDrawTable(index) {
-			getDataFromDBWhere(function(data) {
-				var htmlStr =  '';
-				for(var i=0; i<data.length; i++) {
-					htmlStr += '<tr>'
-					+'	<td>'+data[i]['userid']+'</td><td>'+data[i]['groupname']+'</td><td>'+data[i]['counts']+'</td><td>'+data[i]['grouppos']+'</td><td>'+data[i]['username']+'</td><td>'+data[i]['usercity']+'</td>'
-					+'</tr>'
-				}
-				$('#drawList').html(htmlStr);
-				$('.drawtable').removeClass('hidden');
-				$('ul[name=groupTitle]').removeClass('hidden');
-				$('#genterLayer').addClass('hidden');
-			}, 'Fishpos' , '第' + index + '组');
-
-		}
 
 
     function getUserList(callback) {
@@ -519,9 +646,9 @@
     	});
     }
 
-    function getDataFromDBWhere(callback, tName, groupname) {
+    function getDataFromDBWhere(callback, tName, groupname, counts) {
     	db.transaction(function (context) {
-        context.executeSql('SELECT * FROM ' + tName + ' WHERE groupname = ?', [groupname], function (context, results) {
+        context.executeSql('SELECT * FROM ' + tName + ' WHERE groupname = ? and counts = ?', [groupname, counts], function (context, results) {
           callback(results.rows);
        	});
     	});
@@ -595,46 +722,46 @@
      			inserChengjiToFishpos(function(result) {
      				curCount++;
      				if(newValueArr.length == curCount) {
-     					
-								getChengjiAllNum(function(data) {
-									if(data.rows.length == 0) {
-										//生成名次表格
-										generationLastRanking();
-									}
-								})
-
-
+     						alert('保存成功！')
+								initGenerationLastRanking();
      				}
      			}, fish_num, weight, uid, counts);
      		}
      });
+	
 
-
-
-		generationLastRanking();
+		function initGenerationLastRanking() {
+					generationLastRanking();
+			getChengjiAllNum(function(data) {
+				if(data.rows.length == 0) {
+					//生成名次表格
+				}
+			})
+		}
+		
+		initGenerationLastRanking();
 
 		//得总排名
 		function generationLastRanking(){
 			var htmlStr = '';
 
 			htmlStr += '<tr>'
-      +'	<td rowspan="2" valign="middle">总排名</td>'
-      +'	<td rowspan="2" valign="middle">编号</td>'
-      +'	<td rowspan="2" valign="middle">地区</td>'
-      +'	<td rowspan="2">姓名</td>'
+      		+'<td rowspan="2" class="pt30" valign="middle">编号</td>'
+      		+'<td rowspan="2" class="pt30" valign="middle">地区</td>'
+      		+'<td rowspan="2" class="pt30">姓名</td>'
 
 
 			for(var i=0; i<localStorage.counts; i++) {
 				htmlStr += '<td colspan="2">第'+(i+1)+'场</td>'
 			}
 
-			htmlStr += '<td rowspan="2">总得分</td></tr><tr>'
+			htmlStr += '<td rowspan="2" class="pt30">总得分</td><td rowspan="2" class="pt30" valign="middle">总排名</td></tr><tr>'
 
 			for(var i=0; i<localStorage.counts; i++) {
-				htmlStr += '<td>得分</td><td>成绩</td>'
+				htmlStr += '<td>成绩</td><td>得分</td>'
 			}
       
-      htmlStr += '</tr>';
+      		htmlStr += '</tr>';
 
 			$('#rankTitle').html(htmlStr);
 
@@ -664,6 +791,8 @@
 			}
 			
 			for(var i=0; i<data.length; i++) {
+				data[i]['fish_num'] = Number(data[i]['fish_num']);
+				data[i]['weight'] = Number(data[i]['weight']);
 				var group = data[i]['groupname'].replace('第','').replace('组','');
 				var counts = data[i]['counts'];
 				if(!userObj[data[i]['userid']]) {
@@ -676,11 +805,10 @@
 
 			}
 
-
-
-
+			//计算组内排名
 			$.each(countsObj,	function(key, val) {
 				$.each(val,	function(k, v) {
+					
 					if(v[0]['fish_num']) {
 						v.sort(compare('fish_num'));
 					}else if(v[0]['weight']){
@@ -690,11 +818,36 @@
 			});
 
 
-			//写入ranking
+			//写入ranking(分组排名)
 			$.each(countsObj,	function(key, val) {
 				$.each(val,	function(k, v) {
+				 	var r = 0;
+				 	var last = -1;
+				 	var uList = [];
 					for(var i=0; i<v.length; i++) {
-						v[i]['ranking'] = (i+1);
+						if(v[i]['fish_num']) {
+							var _last = v[i]['fish_num'];
+						} else {
+							var _last = v[i]['weight'];
+						}
+						if (last == _last || i == 0) {
+							r += (i + 1);
+							uList.push(i);
+						} else {
+							//开始结算前面的
+							for (var ii = 0; ii < uList.length; ii ++) {
+								v[uList[ii]]['ranking'] = Math.floor(r * 10 / uList.length) / 10;
+							}
+							uList = [i];
+							r = i + 1;
+						}
+						last = _last;
+					}
+					if (r > 0) {
+						//开始结算前面的
+						for (var ii = 0; ii < uList.length; ii ++) {
+							v[uList[ii]]['ranking'] = Math.floor(r * 10 / uList.length) / 10;
+						}
 					}
 				});
 			});
@@ -703,6 +856,7 @@
 				$.each(val,	function(k, groupItem) {
 					for(var i=0; i<groupItem.length; i++) {
 						userObj[groupItem[i]['userid']][key] = groupItem[i]['ranking'];
+						userObj[groupItem[i]['userid']][key+'_type'] = groupItem[i]['fish_num'] ? 'num' : 'weight';
 						userObj[groupItem[i]['userid']][key+'_value'] = groupItem[i]['fish_num'] || groupItem[i]['weight'];
 					}
 				});
@@ -714,8 +868,8 @@
 
 		function compare(propertyName) { 
 			return function (object1, object2) { 
-				var value1 = object1[propertyName]; 
-				var value2 = object2[propertyName]; 
+				var value1 = Number(object1[propertyName]); 
+				var value2 = Number(object2[propertyName]); 
 				if (value2 < value1) { 
 					return -1; 
 				} 
@@ -731,16 +885,61 @@
 
 		function compare2(propertyName) { 
 			return function (object1, object2) { 
-				var value1 = object1[propertyName]; 
-				var value2 = object2[propertyName]; 
+				var value1 = Number(object1[propertyName]); 
+				var value2 = Number(object2[propertyName]); 
 				if (value2 > value1) { 
 					return -1; 
 				} 
 				else if (value2 < value1) { 
 					return 1; 
 				}
-				else { 
-					return 0; 
+				else {
+					//总分一样
+					var c1 = [];
+					var c2 = [];
+					var c1v_weight = 0;
+					var c2v_weight = 0;
+					var c1v_num = 0;
+					var c2v_num = 0;
+
+					for(var j=0; j<localStorage.counts; j++) {
+						c1.push(object1['counts_' + (j+1)]);
+						c2.push(object2['counts_' + (j+1)]);
+						if (object1['counts_' + (j+1) + '_type'] == 'num') {
+							c1v_num += Number(object1['counts_' + (j+1) + '_value']);
+						} else {
+							c1v_weight += Number(object1['counts_' + (j+1) + '_value']);
+						}
+						if (object1['counts_' + (j+1) + '_type'] == 'num') {
+							c2v_num += Number(object2['counts_' + (j+1) + '_value']);
+						} else {
+							c2v_weight += Number(object2['counts_' + (j+1) + '_value']);
+						}
+					}
+					var c1s = c1.sort(function(a, b) { return a-b;});
+					var c2s = c2.sort(function(a, b) { return a-b;});
+					//> 0 降序， < 0 升序
+					for (var i = 0; i < c1s.length; i++) {
+						if (c1s[i] > c2s[i]) {
+							return 1;
+						} else if (c1s[i] < c2s[i]) {
+							return -1;
+						}
+					}
+					if (c1v_num > c2v_num) {
+						return -1;
+					} else if (c1v_num < c2v_num) {
+						return 1;
+					}
+
+					if (c1v_weight > c2v_weight) {
+						return -1;
+					} else if (c1v_weight < c2v_weight) {
+						return 1;
+					}
+					
+
+					return 0;
 				} 
 			} 
 		} 
@@ -758,21 +957,17 @@
 				val['totalRank'] = totalRank;
 				userArr.push(val);
 			});
-
 			userArr.sort(compare2('totalRank'));
-			
-			// console.log(userArr)
 
 			for(var i=0; i<userArr.length; i++) {
-				htmlStr += '<tr><td>'+(i+1)+'</td>'
-						+'<td>'+userArr[i]['userid']+'</td>'
-						+'<td>'+userArr[i]['usercity']+'</td>'
-						+'<td>'+userArr[i]['username']+'</td>'
+					htmlStr += '<tr><td>'+userArr[i]['userid']+'</td>'
+					+'<td>'+userArr[i]['usercity']+'</td>'
+					+'<td>'+userArr[i]['username']+'</td>'
 				for(var j=0; j<localStorage.counts; j++) {
 					htmlStr += '<td>'+userArr[i]['counts_'+(j+1)+'_value']+'</td><td>'+userArr[i]['counts_'+(j+1)]+'</td>'
 				}
 
-				htmlStr += '<td>'+userArr[i]['totalRank']+'</td></tr>'
+				htmlStr += '<td>'+userArr[i]['totalRank']+'</td><td>'+(i+1)+'</td><tr></tr>'
 			}
 
 
