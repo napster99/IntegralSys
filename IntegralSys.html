@@ -66,7 +66,7 @@
 
 	</style>
 </head>
-<body>
+<body onselectstart="return false" style="-moz-user-select:none;">
 	<h1>钓鱼赛事 积分系统<button id="resetBtn" class="btn btn-primary ml15">重置比赛</button></h1>
 	<hr />
 	<ul class="nav nav-tabs first-tabs">
@@ -262,45 +262,44 @@
 
 		}
 		
-		window.editUserName = function (uid) {
-			var name = $('#userlist_'+uid).find('td span').eq(0).text();
-			var name = prompt('请输入名字', name);
-			if (name) {
-	    	db.transaction(function (context) {
-	    		context.executeSql('UPDATE Groups SET username = ? WHERE userid = ?', [name, uid]);
-	    		context.executeSql('UPDATE Fishpos SET username = ? WHERE userid = ?', [name, uid]);
-	        context.executeSql('UPDATE User SET name = ? WHERE id = ?', [name, uid], function (context, results) {
-	          if (results.rows) {
-	          	$('#userlist_'+uid).find('td span').eq(0).text(name);
-	          	generationLastRanking();
-							renderChouqian(1);
-	          } else {
-	          	alert('更新失败!');
-	          }
-	       	});
-	    	});
-			}
-		}
+		// window.editUserName = function (uid, name, el) {
+		// 	// var name = prompt('请输入名字', name);
+		// 	if (name) {
+	 //    	db.transaction(function (context) {
+	 //    		context.executeSql('UPDATE Groups SET username = ? WHERE userid = ?', [name, uid]);
+	 //    		context.executeSql('UPDATE Fishpos SET username = ? WHERE userid = ?', [name, uid]);
+	 //        context.executeSql('UPDATE User SET name = ? WHERE id = ?', [name, uid], function (context, results) {
+	 //          if (results.rows) {
+	 //          	$('#userlist_'+uid).find('td span').eq(0).text(name);
+	 //          	generationLastRanking();
+		// 					renderChouqian(1);
+	 //          } else {
+	 //          	alert('更新失败!');
+	 //          }
+	 //       	});
+	 //    	});
+		// 	}
+		// }
 
-		window.editUserCity = function (uid) {
-			var city = $('#userlist_'+uid).find('td span').eq(1).text();
-			var city = prompt('请输入城市', city);
-			if (city) {
-				db.transaction(function (context) {
-					context.executeSql('UPDATE Groups SET usercity = ? WHERE userid = ?', [city, uid]);
-	    		context.executeSql('UPDATE Fishpos SET usercity = ? WHERE userid = ?', [city, uid]);
-	        context.executeSql('UPDATE User SET city = ? WHERE id = ?', [city, uid], function (context, results) {
-	          if (results.rows) {
-	          	$('#userlist_'+uid).find('td span').eq(1).text(city);
-	          	generationLastRanking();
-	          	renderChouqian(1);
-	          } else {
-	          	alert('更新失败!');
-	          }
-	       	});
-	    	});
-			}
-		}
+		// window.editUserCity = function (uid) {
+		// 	var city = $('#userlist_'+uid).find('td span').eq(1).text();
+		// 	var city = prompt('请输入城市', city);
+		// 	if (city) {
+		// 		db.transaction(function (context) {
+		// 			context.executeSql('UPDATE Groups SET usercity = ? WHERE userid = ?', [city, uid]);
+	 //    		context.executeSql('UPDATE Fishpos SET usercity = ? WHERE userid = ?', [city, uid]);
+	 //        context.executeSql('UPDATE User SET city = ? WHERE id = ?', [city, uid], function (context, results) {
+	 //          if (results.rows) {
+	 //          	$('#userlist_'+uid).find('td span').eq(1).text(city);
+	 //          	generationLastRanking();
+	 //          	renderChouqian(1);
+	 //          } else {
+	 //          	alert('更新失败!');
+	 //          }
+	 //       	});
+	 //    	});
+		// 	}
+		// }
 
 		$('.first-tabs').on('click', 'li',	function() {
 			var name = $(this).attr('name');
@@ -736,15 +735,86 @@
 			getUserList(function(data) {
 				var htmlStr = '';
 				for(var i=0; i<data.length; i++) {
+					// htmlStr += '<tr id="userlist_'+data[i]['id']+'">'
+					// +'	<td>'+data[i]['id']+'</td><td ondblclick="return editUserName(\''+data[i]['id']+'\',\''+data[i]['name']+'\',\'this\')">'+data[i]['name']+'</td><td><span>'+data[i]['city']+'</span><a href="javascript:;" class="userOptionEdit" onClick="return editUserCity(\''+data[i]['id']+'\')">修改</a></td><td><a href="javascript:;" class="userOptionDel" onClick="return delUser(\''+data[i]['id']+'\')">删除</a></td>'
+					// +'</tr>'
+
+
 					htmlStr += '<tr id="userlist_'+data[i]['id']+'">'
-					+'	<td>'+data[i]['id']+'</td><td><span>'+data[i]['name']+'</span><a href="javascript:;" class="userOptionEdit" onClick="return editUserName(\''+data[i]['id']+'\')">修改</a></td><td><span>'+data[i]['city']+'</span><a href="javascript:;" class="userOptionEdit" onClick="return editUserCity(\''+data[i]['id']+'\')">修改</a></td><td><a href="javascript:;" class="userOptionDel" onClick="return delUser(\''+data[i]['id']+'\')">删除</a></td>'
+					 +'<td>'+data[i]['id']+'</td><td name="td_name" uid="'+data[i]['id']+'" style="width:150px;">'+data[i]['name']+'</td><td name="td_city" uid="'+data[i]['id']+'" style="width:150px;">'+data[i]['city']+'</td><td><a href="javascript:;" class="userOptionDel" onClick="return delUser(\''+data[i]['id']+'\')">删除</a></td>'
 					+'</tr>'
+
+
 				}
 				$('#userList').html(htmlStr);
 			});
 		}
 
 		renderData();
+
+
+		//双击修改姓名
+		$('#userList').on('dblclick', 'td[name=td_name]',	function() {
+			var name = $(this).text();
+			var uid = $(this).attr('uid');
+			$(this).html('<input name="td_name" type="text" value="'+name+'" uid="'+uid+'" style="width:130px;" >');
+			$(this).find('input').focus().select();
+		});
+
+		//丢失焦点
+		$('#userList').on('blur',	'input[name=td_name]',	function() {
+			var newName = $(this).val();
+			var uid = $(this).attr('uid');
+			var self = this;
+			if (newName) {
+	    	db.transaction(function (context) {
+	    		context.executeSql('UPDATE Groups SET username = ? WHERE userid = ?', [newName, uid]);
+	    		context.executeSql('UPDATE Fishpos SET username = ? WHERE userid = ?', [newName, uid]);
+	        context.executeSql('UPDATE User SET name = ? WHERE id = ?', [newName, uid], function (context, results) {
+	          if (results.rows) {
+	          	$('#userlist_'+uid).find('td span').eq(0).text(newName);
+	          	$(self).parent().html(newName);
+	          	generationLastRanking();
+							renderChouqian(1);
+	          } else {
+	          	alert('更新失败!');
+	          }
+	       	});
+	    	});
+			}
+		});
+
+
+		//双击修改城市
+		$('#userList').on('dblclick', 'td[name=td_city]',	function() {
+			var name = $(this).text();
+			var uid = $(this).attr('uid');
+			$(this).html('<input name="td_city" type="text" value="'+name+'" uid="'+uid+'" style="width:130px;" >');
+			$(this).find('input').focus().select();
+		});
+
+		//丢失焦点
+		$('#userList').on('blur',	'input[name=td_city]',	function() {
+			var newCity = $(this).val();
+			var uid = $(this).attr('uid');
+			var self = this;
+			if (newCity) {
+				db.transaction(function (context) {
+					context.executeSql('UPDATE Groups SET usercity = ? WHERE userid = ?', [newCity, uid]);
+	    		context.executeSql('UPDATE Fishpos SET usercity = ? WHERE userid = ?', [newCity, uid]);
+	        context.executeSql('UPDATE User SET city = ? WHERE id = ?', [newCity, uid], function (context, results) {
+	          if (results.rows) {
+	          	$('#userlist_'+uid).find('td span').eq(1).text(newCity);
+	          	$(self).parent().html(newCity);
+	          	generationLastRanking();
+	          	renderChouqian(1);
+	          } else {
+	          	alert('更新失败!');
+	          }
+	       	});
+	    	});
+			}
+		});
 
 
     function getUserList(callback) {
@@ -988,41 +1058,10 @@
 
 			//写入ranking(分组排名)
 			$.each(countsObj,	function(key, val) {
-				// if(perCounts) {
-				// 	var curCounts = key.replace('counts_','');
-				// 	if(perCounts == curCounts) {
-				// 		eachTwo(val)
-				// 	}
-				// }else{
-					eachTwo(val);
-				// }
-				
-			});
-
-			$.each(countsObj,	function(key, val) {
-				$.each(val,	function(k, groupItem) {
-					for(var i=0; i<groupItem.length; i++) {
-						userObj[groupItem[i]['userid']][key] = groupItem[i]['ranking'];
-						userObj[groupItem[i]['userid']][key+'_type'] = groupItem[i]['fish_num'] ? 'num' : 'weight';
-						userObj[groupItem[i]['userid']][key+'_value'] = groupItem[i]['fish_num'] || groupItem[i]['weight'];
-					}
-				});
-			}); 
-			
-			if(perCounts) {
-				renderBodyRankPerCount(userObj, perCounts);
-			}else{
-				renderBodyRank(userObj);
-			}
-		}
-
-
-		function eachTwo(val) {
-			$.each(val,	function(k, v) {
+				$.each(val,	function(k, v) {
 				 	var r = 0;
 				 	var last = -1;
 				 	var uList = [];
-				 	console.log(v)
 					for(var i=0; i<v.length; i++) {
 						if (v[i]['ranking'] <= 0) {
 							v[i]['ranking'] = 1000;
@@ -1054,6 +1093,28 @@
 						}
 					}
 				});
+			});
+
+			$.each(countsObj,	function(key, val) {
+				$.each(val,	function(k, groupItem) {
+					for(var i=0; i<groupItem.length; i++) {
+						userObj[groupItem[i]['userid']][key] = groupItem[i]['ranking'];
+						userObj[groupItem[i]['userid']][key+'_type'] = groupItem[i]['fish_num'] ? 'num' : 'weight';
+						userObj[groupItem[i]['userid']][key+'_value'] = groupItem[i]['fish_num'] || groupItem[i]['weight'];
+					}
+				});
+			}); 
+			
+			if(perCounts) {
+				renderBodyRankPerCount(userObj, perCounts);
+			}else{
+				renderBodyRank(userObj);
+			}
+		}
+
+
+		function eachTwo(val) {
+			
 		}
 
 
@@ -1172,6 +1233,7 @@
 				}
 
 				val['totalRank'] = totalRank == 0 ? 1000 : totalRank;
+				console.log(val['totalRank'])
 				userArr.push(val);
 			});
 			userArr.sort(compare2('totalRank'));
